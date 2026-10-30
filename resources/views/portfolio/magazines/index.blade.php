@@ -11,15 +11,31 @@
                 $portfolioMagazines = \App\Models\Magazine::latest()->get();
             @endphp
             @forelse($portfolioMagazines as $mag)
-                <div class="bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col justify-between">
+                @php
+                    $pdfUrl = str_starts_with($mag->pdf_path, 'http') ? $mag->pdf_path : asset('storage/' . ltrim($mag->pdf_path, '/'));
+                    $coverUrl = !empty($mag->cover_image_path) ? (str_starts_with($mag->cover_image_path, 'http') ? $mag->cover_image_path : asset('storage/' . ltrim($mag->cover_image_path, '/'))) : null;
+                @endphp
+                <div class="bg-panel border border-borderSubtle rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between group hover:border-neonRed transition duration-300">
+                    <div class="relative h-64 overflow-hidden bg-obsidian flex items-center justify-center magazine-card-thumb" data-pdf="{{ $pdfUrl }}">
+                        @if($coverUrl)
+                            <img src="{{ $coverUrl }}" alt="{{ $mag->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        @else
+                            <canvas class="pdf-thumbnail-canvas w-full h-full object-cover group-hover:scale-105 transition duration-500" data-pdf="{{ $pdfUrl }}"></canvas>
+                            <div class="thumb-fallback absolute inset-0 bg-gradient-to-br from-panelLighter to-obsidian flex flex-col items-center justify-center p-6 text-center" style="display: none !important;">
+                                <span class="text-xs font-mono text-gray-400">Magazine Cover</span>
+                            </div>
+                        @endif
+                        <span class="absolute top-4 left-4 px-3 py-1 bg-obsidian/80 backdrop-blur border border-borderSubtle rounded-full text-[10px] font-mono uppercase tracking-widest text-neonRed">Magazine Edition</span>
+                    </div>
                     <div class="p-6">
-                        <h3 class="text-xl font-bold mb-2">{{ $mag->title }}</h3>
-                        <p class="text-gray-400 text-sm mb-6">{{ $mag->description }}</p>
+                        <h3 class="text-xl font-bold mb-2 text-white group-hover:text-neonRed transition">{{ $mag->title }}</h3>
+                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">{{ $mag->description ?: 'Explore this exclusive editorial publication rendered in high fidelity interactive 3D flipbook.' }}</p>
                     </div>
                     <div class="p-6 pt-0">
-                        <button onclick="openFlipbook('{{ asset('storage/' . $mag->pdf_path) }}', '{{ addslashes($mag->title) }}')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition duration-200 shadow-md">
-                            Read Flipbook
-                        </button>
+                        <a href="{{ route('magazine.show', $mag->id) }}" class="w-full py-3 bg-neonRed hover:bg-red-700 text-white font-mono text-xs uppercase tracking-widest font-bold rounded-xl transition duration-200 shadow-lg flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-eye"></i>
+                            <span>View</span>
+                        </a>
                     </div>
                 </div>
             @empty
@@ -62,6 +78,42 @@
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.pdf-thumbnail-canvas').forEach(async (canvas) => {
+            const pdfUrl = canvas.getAttribute('data-pdf');
+            if (!pdfUrl) return;
+            try {
+                const loadingTask = pdfjsLib.getDocument({
+                    url: pdfUrl,
+                    disableRange: true,
+                    disableStream: true,
+                    disableAutoFetch: true
+                });
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1.0 });
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                const context = canvas.getContext('2d');
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                const parent = canvas.closest('.magazine-card-thumb');
+                if (parent) {
+                    const fallback = parent.querySelector('.thumb-fallback');
+                    if (fallback) fallback.remove();
+                }
+            } catch (err) {
+                console.error('Error rendering thumbnail for PDF:', pdfUrl, err);
+                const parent = canvas.closest('.magazine-card-thumb');
+                if (parent) {
+                    const fallback = parent.querySelector('.thumb-fallback');
+                    if (fallback) fallback.innerHTML = '<span class="text-xs text-red-400">Cover unavailable</span>';
+                }
+            }
+        });
+    });
+
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     let pageFlip = null;
@@ -77,7 +129,13 @@
         bookElem.innerHTML = '<div class="text-white text-center py-20">Rendering PDF pages...</div>';
 
         try {
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const loadingTask = pdfjsLib.getDocument({
+                url: pdfUrl,
+                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                cMapPacked: true,
+                disableRange: true,
+                disableStream: true
+            });
             const pdf = await loadingTask.promise;
             const totalPages = pdf.numPages;
 
@@ -96,7 +154,9 @@
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
 
                 const pageDiv = document.createElement('div');
-                pageDiv.className = 'page bg-white shadow-md';
+                pageDiv.className = 'page bg-white shadow-md overflow-hidden flex items-center justify-center';
+                pageDiv.style.width = viewport.width + 'px';
+                pageDiv.style.height = viewport.height + 'px';
                 pageDiv.appendChild(canvas);
                 bookElem.appendChild(pageDiv);
             }
@@ -105,14 +165,18 @@
                 pageFlip.destroy();
             }
 
+            const firstCanvas = bookElem.querySelector('.page canvas');
+            const pWidth = firstCanvas ? firstCanvas.width / 1.5 : (isMobile ? 320 : 450);
+            const pHeight = firstCanvas ? firstCanvas.height / 1.5 : (isMobile ? 450 : 600);
+
             pageFlip = new St.PageFlip(bookElem, {
-                width: isMobile ? 320 : 450,
-                height: isMobile ? 450 : 600,
-                size: isMobile ? 'fixed' : 'stretch',
-                minWidth: 280,
-                maxWidth: 600,
-                minHeight: 400,
-                maxHeight: 800,
+                width: Math.round(pWidth),
+                height: Math.round(pHeight),
+                size: 'fixed',
+                minWidth: 200,
+                maxWidth: 1000,
+                minHeight: 300,
+                maxHeight: 1200,
                 maxShadowOpacity: 0.5,
                 showCover: true,
                 mobileScrollSupport: true

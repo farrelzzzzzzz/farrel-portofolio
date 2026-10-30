@@ -48,6 +48,62 @@
                 <img src="{{ $project->thumbnail }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
             </div>
 
+            @if($project->video_file)
+            <div class="space-y-4 pt-6">
+                <h3 class="text-2xl font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-video text-neonRed"></i>
+                    <span>Live Video Playback</span>
+                    <span class="ml-auto inline-flex items-center space-x-1.5 px-2.5 py-1 bg-neonRed/10 border border-neonRed/30 rounded-full text-[10px] font-mono font-bold text-neonRed uppercase tracking-wider">
+                        <span class="w-1.5 h-1.5 rounded-full bg-neonRed animate-pulse"></span>
+                        <span>HD Stream</span>
+                    </span>
+                </h3>
+                <div class="relative w-full aspect-video bg-darkBg border border-cardBorder rounded-3xl overflow-hidden shadow-2xl">
+                    <video controls class="w-full h-full object-cover">
+                        <source src="{{ asset('storage/' . $project->video_file) }}" type="video/mp4">
+                        Browser Anda tidak mendukung tag video.
+                    </video>
+                </div>
+            </div>
+            @endif
+
+            @if($project->figma_url)
+                @php
+                    $figmaEmbedUrl = 'https://www.figma.com/embed?embed_host=share&url=' . urlencode($project->figma_url);
+                @endphp
+                <div class="space-y-4 pt-6">
+                    <h3 class="text-2xl font-bold text-white flex items-center space-x-2">
+                        <i class="fa-brands fa-figma text-indigo-400"></i>
+                        <span>Interactive Figma Prototype</span>
+                        <span class="ml-auto inline-flex items-center space-x-1.5 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-[10px] font-mono font-bold text-indigo-300 uppercase tracking-wider">
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                            <span>Live Embed</span>
+                        </span>
+                    </h3>
+                    <div class="relative w-full h-[400px] sm:h-[500px] md:h-[600px] bg-darkBg border border-cardBorder rounded-3xl overflow-hidden shadow-2xl">
+                        <iframe
+                            src="{{ $figmaEmbedUrl }}"
+                            class="w-full h-full"
+                            frameborder="0"
+                            allowfullscreen
+                            loading="lazy"
+                            title="Figma Prototype — {{ $project->title }}">
+                        </iframe>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-400 px-2">
+                        <span class="flex items-center space-x-2">
+                            <i class="fa-solid fa-hand-pointer text-indigo-400"></i>
+                            <span>Prototipe interaktif langsung dari Figma — klik, scroll, dan zoom untuk eksplorasi.</span>
+                        </span>
+                        <a href="{{ $project->figma_url }}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1.5 transition shrink-0">
+                            <i class="fa-brands fa-figma"></i>
+                            <span>Open in Figma</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             @if($project->model_file)
             <div class="space-y-4 pt-6">
                 <h3 class="text-2xl font-bold text-white flex items-center space-x-2">
@@ -228,34 +284,197 @@
                 <div class="text-gray-300 leading-relaxed space-y-4 text-base">
                     <p>{{ $project->description }}</p>
                 </div>
-                @if($project->figma_url)
-                <div class="space-y-4 pt-6">
-                    <h3 class="text-2xl font-bold text-white flex items-center space-x-2">
-                        <i class="fa-brands fa-figma text-indigo-400"></i>
-                        <span>Figma Embed & Interactive Prototype Preview</span>
-                    </h3>
-                    <div class="relative w-full h-[600px] bg-darkBg border border-cardBorder rounded-3xl overflow-hidden shadow-2xl">
-                        <iframe 
-                            src="https://www.figma.com/embed?embed_host=share&url={{ urlencode($project->figma_url) }}" 
-                            allowfullscreen 
-                            class="w-full h-full border-0">
-                        </iframe>
-                    </div>
-                </div>
-                @endif
             </div>
 
-            @if($project->gallery && count($project->gallery) > 0)
-            <div class="space-y-4 pt-6">
-                <h3 class="text-2xl font-bold text-white">Galeri Desain & Screenshot</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    @foreach($project->gallery as $img)
-                    <div class="bg-cardBg border border-cardBorder rounded-2xl overflow-hidden aspect-video">
-                        <img src="{{ $img }}" alt="Gallery item" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+            @if(!empty($project->pdf_file))
+            @php
+                $resolvedPdfUrl = str_starts_with($project->pdf_file, 'http') ? $project->pdf_file : asset('storage/' . ltrim($project->pdf_file, '/'));
+            @endphp
+            <div class="space-y-4 pt-6" id="magazine-flipbook-section">
+                <h3 class="text-2xl font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-book-open text-accentRed"></i>
+                    <span>Interactive Magazine Flipbook Viewer</span>
+                </h3>
+                <div class="relative w-full bg-darkBg border border-cardBorder rounded-3xl overflow-hidden shadow-2xl p-4 sm:p-8 flex flex-col items-center justify-center min-h-[600px]" id="flipbook-container">
+                    <div id="flipbook-loading" class="text-gray-400 text-sm flex flex-col items-center space-y-3 py-20">
+                        <i class="fa-solid fa-spinner fa-spin text-accentRed text-3xl"></i>
+                        <span class="font-semibold text-white">Merender halaman PDF Magazine...</span>
+                        <span class="text-xs text-gray-500 font-mono break-all max-w-md text-center">{{ $resolvedPdfUrl }}</span>
                     </div>
-                    @endforeach
+                    <div id="flipbook-viewport" class="transition-transform duration-200 flex items-center justify-center w-full overflow-hidden py-4" style="min-height: 520px; display: flex;">
+                        <div id="book" style="display: none; margin: 0 auto; min-width: 300px; min-height: 400px;"></div>
+                    </div>
+                    <div id="flipbook-error" class="text-red-400 text-sm py-10 text-center px-4" style="display:none;">
+                        <p class="font-bold mb-1 text-base">Gagal memuat file PDF magazine.</p>
+                        <p class="text-xs text-gray-400 font-mono break-all" id="error-url-display"></p>
+                    </div>
+                </div>
+
+                <!-- Flipbook Controls Toolbar -->
+                <div class="bg-cardBorder/30 border border-cardBorder rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="prevPage()" class="px-4 py-2 bg-cardBg border border-cardBorder hover:border-accentRed text-white text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-arrow-left mr-1"></i> Previous
+                        </button>
+                        <span id="page-info" class="text-xs text-gray-400 font-mono px-2">Memuat halaman...</span>
+                        <button type="button" onclick="nextPage()" class="px-4 py-2 bg-cardBg border border-cardBorder hover:border-accentRed text-white text-xs font-bold rounded-xl transition">
+                            Next <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="zoomIn()" class="px-3 py-2 bg-cardBg border border-cardBorder hover:border-accentRed text-white text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i> Zoom +
+                        </button>
+                        <button type="button" onclick="zoomOut()" class="px-3 py-2 bg-cardBg border border-cardBorder hover:border-accentRed text-white text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-magnifying-glass-minus"></i> Zoom -
+                        </button>
+                        <button type="button" onclick="toggleFullscreen()" class="px-3 py-2 bg-cardBg border border-cardBorder hover:border-accentRed text-white text-xs font-bold rounded-xl transition">
+                            <i class="fa-solid fa-expand"></i> Fullscreen
+                        </button>
+                        <a href="{{ $resolvedPdfUrl }}" download class="px-3 py-2 bg-accentRed text-white text-xs font-bold rounded-xl hover:bg-red-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-download"></i>
+                            <span>PDF</span>
+                        </a>
+                    </div>
                 </div>
             </div>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+            <script>
+                if (window.pdfjsLib) {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                }
+
+                const magazinePdfUrl = "{{ $resolvedPdfUrl }}";
+                console.log("Active Magazine PDF URL:", magazinePdfUrl);
+
+                let pageFlipInstance = null;
+                let currentScale = 1.0;
+
+                async function initMagazineFlipbook() {
+                    const bookElem = document.getElementById('book');
+                    const loadingElem = document.getElementById('flipbook-loading');
+                    const errorElem = document.getElementById('flipbook-error');
+                    const errorUrlDisplay = document.getElementById('error-url-display');
+
+                    if (!magazinePdfUrl) {
+                        if (loadingElem) loadingElem.style.display = 'none';
+                        if (errorElem) errorElem.style.display = 'block';
+                        if (errorUrlDisplay) errorUrlDisplay.innerText = "URL PDF Kosong";
+                        return;
+                    }
+
+                    try {
+                        const loadingTask = pdfjsLib.getDocument({
+                            url: magazinePdfUrl,
+                            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                            cMapPacked: true,
+                        });
+                        const pdfDoc = await loadingTask.promise;
+                        const totalPages = pdfDoc.numPages;
+
+                        bookElem.innerHTML = '';
+                        const isMobile = window.innerWidth < 768;
+
+                        for (let i = 1; i <= totalPages; i++) {
+                            const page = await pdfDoc.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.5 });
+
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                            const pageDiv = document.createElement('div');
+                            pageDiv.className = 'page bg-white shadow-xl overflow-hidden flex items-center justify-center';
+                            // Set explicit width and height on pageDiv so StPageFlip can measure them correctly
+                            pageDiv.style.width = viewport.width + 'px';
+                            pageDiv.style.height = viewport.height + 'px';
+                            pageDiv.appendChild(canvas);
+                            bookElem.appendChild(pageDiv);
+                        }
+
+                        if (loadingElem) loadingElem.style.display = 'none';
+                        bookElem.style.display = 'block';
+
+                        // Calculate aspect ratio or provide flexible dimensions based on first rendered page
+                        const firstPageSample = bookElem.querySelector('.page canvas');
+                        const pWidth = firstPageSample ? firstPageSample.width / 1.5 : (isMobile ? 320 : 450);
+                        const pHeight = firstPageSample ? firstPageSample.height / 1.5 : (isMobile ? 450 : 620);
+
+                        pageFlipInstance = new St.PageFlip(bookElem, {
+                            width: Math.round(pWidth),
+                            height: Math.round(pHeight),
+                            size: 'fixed',
+                            minWidth: 200,
+                            maxWidth: 1000,
+                            minHeight: 300,
+                            maxHeight: 1200,
+                            maxShadowOpacity: 0.5,
+                            showCover: true,
+                            mobileScrollSupport: true
+                        });
+
+                        pageFlipInstance.loadFromHTML(bookElem.querySelectorAll('.page'));
+
+                        pageFlipInstance.on('flip', (e) => {
+                            const info = document.getElementById('page-info');
+                            if (info) info.innerText = `Halaman ${e.data + 1} dari ${totalPages}`;
+                        });
+
+                        const info = document.getElementById('page-info');
+                        if (info) info.innerText = `Halaman 1 dari ${totalPages}`;
+
+                    } catch (err) {
+                        console.error('Flipbook load error:', err);
+                        if (loadingElem) loadingElem.style.display = 'none';
+                        if (errorElem) errorElem.style.display = 'block';
+                        if (errorUrlDisplay) errorUrlDisplay.innerText = "URL: " + magazinePdfUrl + " | Error: " + err.message;
+                    }
+                }
+
+                function nextPage() {
+                    if (pageFlipInstance) pageFlipInstance.flipNext();
+                }
+
+                function prevPage() {
+                    if (pageFlipInstance) pageFlipInstance.flipPrev();
+                }
+
+                function zoomIn() {
+                    currentScale += 0.2;
+                    const viewport = document.getElementById('flipbook-viewport');
+                    if (viewport) viewport.style.transform = `scale(${currentScale})`;
+                }
+
+                function zoomOut() {
+                    if (currentScale > 0.6) {
+                        currentScale -= 0.2;
+                        const viewport = document.getElementById('flipbook-viewport');
+                        if (viewport) viewport.style.transform = `scale(${currentScale})`;
+                    }
+                }
+
+                function toggleFullscreen() {
+                    const container = document.getElementById('magazine-flipbook-section');
+                    if (!document.fullscreenElement && container) {
+                        container.requestFullscreen().catch(err => {
+                            console.error('Fullscreen error:', err);
+                        });
+                    } else if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    }
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initMagazineFlipbook);
+                } else {
+                    initMagazineFlipbook();
+                }
+            </script>
             @endif
 
             <div class="pt-8 text-center">

@@ -19,8 +19,13 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Current PDF</label>
-                <a href="{{ asset('storage/' . $magazine->pdf_path) }}" target="_blank" class="text-indigo-600 underline text-sm">View Current PDF</a>
+                <label class="block text-sm font-medium text-gray-700">Cover Thumbnail (PNG/JPEG)</label>
+                @if($magazine->cover_image_path)
+                    <div class="mb-2">
+                        <img src="{{ asset('storage/' . $magazine->cover_image_path) }}" alt="Current Cover" class="w-24 h-32 object-cover rounded shadow">
+                    </div>
+                @endif
+                <input type="file" name="cover_image" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
             </div>
 
             <div>

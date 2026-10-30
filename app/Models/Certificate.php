@@ -14,6 +14,7 @@ class Certificate extends Model
         'issuer',
         'date',
         'image',
+        'pdf_file',
         'credential_url',
     ];
 }

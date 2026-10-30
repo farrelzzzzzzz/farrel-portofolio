@@ -1,0 +1,28 @@
+databases:
+  - name: portofolio-db
+    database_dbname: portofoliodb
+    database_user: portofolio
+    free: true
+
+services:
+  - type: web
+    name: farrel-portofolio
+    env: docker
+    free: true
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: "Farrel Balapradhana Portfolio"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portofolio-db
+          property: connectionString

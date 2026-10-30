@@ -18,6 +18,7 @@ class Project extends Model
         'thumbnail',
         'gallery',
         'figma_url',
+        'canva_url',
         'model_file',
         'video_file',
         'pdf_file',

@@ -9,3 +9,65 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.programming-carousel {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.programming-carousel.is-dragging {
+    cursor: grabbing;
+    scroll-behavior: auto;
+}
+
+.programming-carousel::-webkit-scrollbar {
+    height: 6px;
+}
+
+.programming-carousel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 9999px;
+}
+
+.programming-carousel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+}
+
+.programming-carousel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.programming-carousel-track {
+    display: flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: max-content;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.programming-carousel-track > span {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.programming-carousel-track > span:hover {
+    transform: scale(1.05);
+    z-index: 10;
+}
